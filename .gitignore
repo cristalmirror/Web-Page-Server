@@ -1,0 +1,7 @@
+# Certificados y llaves privadas
+*.key
+*.crt
+*.pem
+*.csr
+# Binarios
+servidor_ssl

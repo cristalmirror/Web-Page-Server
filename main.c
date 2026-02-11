@@ -31,11 +31,21 @@ SSL_CTX *create_context() {
 
 void configure_context(SSL_CTX *ctx) {
     //load yout certificate and key privated
-    if (SSL_CTX_use_certificate_file(ctx, "cert.pem", SSL_FILETYPE_PEM)<= 0 ||
-        SSL_CTX_use_PrivateKey_file(ctx, "key.pem", SSL_FILETYPE_PEM)<= 0) {
-            ERR_print_errors_fp(stderr);
-            exit(EXIT_FAILURE);
-        } 
+    if (SSL_CTX_use_certificate_file(ctx, "server.crt", SSL_FILETYPE_PEM)<= 0 ){
+        ERR_print_errors_fp(stderr);
+        exit(EXIT_FAILURE);
+    }
+
+    if(SSL_CTX_use_PrivateKey_file(ctx, "server.key", SSL_FILETYPE_PEM)<= 0) {
+        ERR_print_errors_fp(stderr);
+        exit(EXIT_FAILURE);
+    }
+    
+    // Verificar que coincidan
+    if (!SSL_CTX_check_private_key(ctx)) {
+        fprintf(stderr, "Error: La llave privada no coincide con el certificado\n");
+        exit(EXIT_FAILURE);
+    }
 }
 
 //main functions
@@ -49,7 +59,7 @@ int main(int argc, char *argv[]) {
     if (argc > 1) {
         port = (uint16_t) strtoul(argv[1], NULL, 10);
     }
-    char *hello = "HTTP/1.1 200 OK\r\nContnt-Type: text/plan\r\nContext-Length: 11\r\nHola Mundo!!!.";
+    
 
     init_openssl();
     SSL_CTX *ctx = create_context();
@@ -97,7 +107,33 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Fallo en el handshake SSL\n");
             ERR_print_errors_fp(stderr);
         } else {
-            SSL_write(ssl, hello, strlen(hello));
+
+            FILE *html_file = fopen("index.html","r"); //open file
+            
+            //read file (index.html) and send to browser.
+            if (html_file) {
+                //determine file size archive
+                fseek(html_file,0,SEEK_END);
+                long fsize = ftell(html_file);
+                fseek(html_file,0,SEEK_SET);
+
+                //read content of a buffer
+                char content[fsize + 1];
+                fread(content, 1, fsize, html_file);
+                content[fsize] = '\0';
+                fclose(html_file); // close all the flow
+
+                //construct the respose HHTP with correct format
+                char respose[fsize + 200];
+                snprintf(respose, sizeof(respose), "HTTP/1.1 200 OK\r\n"
+                                                "Content-Type: text/html\r\n"
+                                                "Content-Length: %ld\r\n"
+                                                "Connection: close\r\n"
+                                                "\r\n" // Esta línea en blanco es OBLIGATORIA
+                                                "%s",fsize,content);
+                SSL_write(ssl, respose, strlen(respose));
+            }
+
         }
 
         //5. Send respous using write (similar that fwrite)
