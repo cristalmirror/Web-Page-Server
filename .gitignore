@@ -3,5 +3,6 @@
 *.crt
 *.pem
 *.csr
+*.srl
 # Binarios
 servidor_ssl
