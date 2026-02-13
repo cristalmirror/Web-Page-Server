@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/socket.h>
@@ -109,7 +110,44 @@ int main(int argc, char *argv[]) {
         } else {
 
             FILE *html_file = fopen("index.html","r"); //open file
-            
+            //initial size buffer define
+            size_t tam = 1024;
+            size_t total_read = 0;
+            char *buffer = malloc(tam);
+
+            //manager memory error
+            if (buffer == NULL) return 1;
+        
+            int read_bytes; 
+            while((read_bytes = SSL_read(ssl, buffer + total_read, tam - total_read - 1)) > 0) {
+                
+                //incrememt in "read bytes size"     
+                total_read += read_bytes;
+
+                // comprobation of size buffe
+                if (total_read>= tam - 1) {
+                    tam *= 2;
+                    char *temp = realloc(buffer, tam); //secure resize allocation
+                    
+                    //if fail, free allocation in buffer to avoid memory keaks
+                    if (temp == NULL) {
+                        free(buffer);
+                        return 1;
+                    }
+                    buffer = temp;
+                }
+                buffer[total_read] = '\0';
+                //exit for while
+                if (strstr(buffer,"\r\n\r\n")) break;
+            }
+
+            //search the message in POST method
+            char *message_ptr = strstr(buffer,"data=");
+            if (message_ptr) {
+                printf("[CLIENT]: %s\n",message_ptr + 5);
+            }
+
+            free(buffer);
             //read file (index.html) and send to browser.
             if (html_file) {
                 //determine file size archive
@@ -131,6 +169,8 @@ int main(int argc, char *argv[]) {
                                                 "Connection: close\r\n"
                                                 "\r\n" // Esta línea en blanco es OBLIGATORIA
                                                 "%s",fsize,content);
+
+            
                 SSL_write(ssl, respose, strlen(respose));
             }
 
