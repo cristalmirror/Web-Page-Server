@@ -49,6 +49,14 @@ void configure_context(SSL_CTX *ctx) {
     }
 }
 
+void change_char(char *msg_original, char objetive, char remplaze) {
+    for (int i = 0; msg_original[i] != '\0'; i++) {
+        if (msg_original[i] == objetive) {
+            msg_original[i] = remplaze;
+        }
+    }
+}
+
 //main functions
 int main(int argc, char *argv[]) {
     //define elemnts
@@ -143,6 +151,9 @@ int main(int argc, char *argv[]) {
 
             //search the message in POST method
             char *message_ptr = strstr(buffer,"data=");
+
+            change_char(message_ptr,'+',' ');
+
             if (message_ptr) {
                 printf("[CLIENT]: %s\n",message_ptr + 5);
             }
