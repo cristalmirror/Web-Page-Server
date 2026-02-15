@@ -112,10 +112,11 @@ int client_manager(void *ssl_arg) {
 
         //search the message in POST method
         char *message_ptr = strstr(buffer,"data=");
-
-        change_char(message_ptr,'+',' ');
-
-        if (message_ptr) {
+        if (message_ptr == NULL) {
+            message_ptr = "None message";
+            printf("[SERVER]: %s\n", message_ptr);
+        } else {
+            change_char(message_ptr,'+',' ');
             printf("[CLIENT]: %s\n",message_ptr + 5);
         }
 
