@@ -8,7 +8,7 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <threads.h>
-
+#include"download_operations.h"
 
 void init_openssl() {
     SSL_load_error_strings();
@@ -64,6 +64,10 @@ void change_char(char *msg_original, char objetive, char remplaze) {
 int client_manager(void *ssl_arg) {
     printf("[SERVER]: <<THREAD>> new thread is created\n");
     SSL  *ssl = (SSL *)ssl_arg;
+
+    if (strstr(buffer, "GET /executables")) {
+        manager_downloads_archive(ssl);
+    }
 
     if (SSL_accept(ssl) <= 0) {
             fprintf(stderr, "Fallo en el handshake SSL\n");
