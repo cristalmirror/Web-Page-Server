@@ -65,10 +65,6 @@ int client_manager(void *ssl_arg) {
     printf("[SERVER]: <<THREAD>> new thread is created\n");
     SSL  *ssl = (SSL *)ssl_arg;
 
-    if (strstr(buffer, "GET /executables")) {
-        manager_downloads_archive(ssl);
-    }
-
     if (SSL_accept(ssl) <= 0) {
             fprintf(stderr, "Fallo en el handshake SSL\n");
             ERR_print_errors_fp(stderr);
@@ -150,6 +146,11 @@ int client_manager(void *ssl_arg) {
             
             SSL_write(ssl, respose, strlen(respose));
         }
+
+        if (strstr(buffer, "GET /executables")) {
+            manager_downloads_archive(ssl);
+        }
+
     }
 
     //5. Send respous using write (similar that fwrite)
