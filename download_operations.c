@@ -4,6 +4,8 @@
 #include<string.h>
 
 int manager_downloads_archive(SSL *ssl) {
+    
+    printf("[SERVER]: Downloads manager system runing");
     //open the archive in binary mode "rb" for avoid alterations
     FILE *file = fopen("/executables/aesexe","rb");
     if (file == NULL) {
