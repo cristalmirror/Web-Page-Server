@@ -8,7 +8,7 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <threads.h>
-#include"download_operations.h"
+#include"./include/download_operations.h"
 
 void init_openssl() {
     SSL_load_error_strings();
@@ -70,7 +70,6 @@ int client_manager(void *ssl_arg) {
             ERR_print_errors_fp(stderr);
     } else {
 
-        FILE *html_file = fopen("index.html","r"); //open file
         //initial size buffer define
         size_t tam = 1024;
         size_t total_read = 0;
@@ -120,36 +119,38 @@ int client_manager(void *ssl_arg) {
             printf("[CLIENT]: %s\n",message_ptr + 5);
         }
 
+        // extract URL path from request line
+        char url_path[512] = "";
+        sscanf(buffer, "GET %511s HTTP", url_path);
+
+        if (strncmp(url_path, "/executables/", 13) == 0 && strlen(url_path) > 13) {
+            // skip leading '/' to get relative path: /executables/foo -> executables/foo
+            manager_downloads_archive(ssl, url_path + 1);
+        } else {
+            FILE *html_file = fopen("index.html", "r");
+            if (html_file) {
+                fseek(html_file, 0, SEEK_END);
+                long fsize = ftell(html_file);
+                fseek(html_file, 0, SEEK_SET);
+
+                char content[fsize + 1];
+                fread(content, 1, fsize, html_file);
+                content[fsize] = '\0';
+                fclose(html_file);
+
+                char respose[fsize + 200];
+                snprintf(respose, sizeof(respose),
+                        "HTTP/1.1 200 OK\r\n"
+                        "Content-Type: text/html\r\n"
+                        "Content-Length: %ld\r\n"
+                        "Connection: close\r\n"
+                        "\r\n"
+                        "%s", fsize, content);
+
+                SSL_write(ssl, respose, strlen(respose));
+            }
+        }
         free(buffer);
-        //read file (index.html) and send to browser.
-        if (html_file) {
-            //determine file size archive
-            fseek(html_file,0,SEEK_END);
-            long fsize = ftell(html_file);
-            fseek(html_file,0,SEEK_SET);
-
-            //read content of a buffer
-            char content[fsize + 1];
-            fread(content, 1, fsize, html_file);
-            content[fsize] = '\0';
-            fclose(html_file); // close all the flow
-
-            //construct the respose HHTP with correct format
-            char respose[fsize + 200];
-            snprintf(respose, sizeof(respose), "HTTP/1.1 200 OK\r\n"
-                                            "Content-Type: text/html\r\n"
-                                            "Content-Length: %ld\r\n"
-                                            "Connection: close\r\n"
-                                            "\r\n" // this line is void, obligatory
-                                            "%s",fsize,content);
-
-            
-            SSL_write(ssl, respose, strlen(respose));
-        }
-
-        if (strstr(buffer, "GET /executables")) {
-            manager_downloads_archive(ssl);
-        }
 
     }
 

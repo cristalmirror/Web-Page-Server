@@ -4,6 +4,6 @@
 #include <openssl/ssl.h>
 #include <threads.h>
 
-int manager_downloads_archive(SSL *ssl);
+int manager_downloads_archive(SSL *ssl, const char *filename);
 
 #endif
